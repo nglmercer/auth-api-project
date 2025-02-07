@@ -5,23 +5,27 @@ import StorageManager from './utils.js';
 
 const router = express.Router();
 const JWT_SECRET = 'YOUR_TOKEN_HERE'; // Cambia esta cadena por una clave segura en producción curl -X GET http://localhost:3000/auth/profile -H "Authorization: Bearer YOUR_TOKEN_HERE"
-
+const isEmptyObject = (obj) => {
+  return obj && Object.keys(obj).length === 0 && obj.constructor === Object;
+};
 // Global state for system-wide access control
 // Initialize StorageManager instances
 const storage = new StorageManager('usuarios.json', './data');
 const configStorage = new StorageManager('access-config.json', './data');
-
-// Load or initialize access control configuration
-const accessControl = configStorage.JSONget('accessControl') || {
-  globalAccessEnabled: false,
-  timePermissions: {},
-  temporaryAccess: {}
-};
-
-// Function to save access control state
+let accessControl = configStorage.JSONget('accessControl');
 const saveAccessControl = () => {
   configStorage.JSONset('accessControl', accessControl);
 };
+
+if (!accessControl || isEmptyObject(accessControl)) {
+  accessControl = {
+    globalAccessEnabled: false,
+    timePermissions: {},
+    temporaryAccess: {}
+  };
+  // Guardar las opciones predeterminadas en el archivo
+  saveAccessControl();
+}
 
 // Replace the global variable with a getter/setter
 const getGlobalAccessEnabled = () => accessControl.globalAccessEnabled;
@@ -33,11 +37,10 @@ const setGlobalAccessEnabled = (value) => {
 // Middleware para verificar el token JWT en rutas protegidas.
 export const verifyToken = (req, res, next) => {
   // If global access is enabled, skip token verification
-  if (getGlobalAccessEnabled()) {
+  if (!getGlobalAccessEnabled()) {
     req.user = { globalAccess: true };
     return next();
   }
-
   const authHeader = req.headers['authorization'];
   if (!authHeader) {
     return res.status(401).json({ error: 'No se proporcionó token' });
@@ -140,7 +143,11 @@ router.post('/system/access', verifyToken, (req, res) => {
   setGlobalAccessEnabled(enabled);
   return res.json({ message: `Global access ${enabled ? 'enabled' : 'disabled'}` });
 });
-
+//configStorage.JSONget('accessControl')
+router.get('/system/accessInfo', verifyToken, (req, res) => {
+  const accessControl = configStorage.JSONget('accessControl') || {};
+  return res.json(accessControl);
+})
 // Set timed access for a user
 router.post('/access/timed', verifyToken, (req, res) => {
   const { username, duration } = req.body; // duration in minutes
