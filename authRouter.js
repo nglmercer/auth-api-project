@@ -4,12 +4,10 @@ import bcrypt from 'bcrypt';
 import StorageManager from './utils.js';
 
 const router = express.Router();
-const JWT_SECRET = 'YOUR_TOKEN_HERE'; // Cambia esta cadena por una clave segura en producción curl -X GET http://localhost:3000/auth/profile -H "Authorization: Bearer YOUR_TOKEN_HERE"
+const JWT_SECRET = 'YOUR_TOKEN_HERE';
 const isEmptyObject = (obj) => {
   return obj && Object.keys(obj).length === 0 && obj.constructor === Object;
 };
-// Global state for system-wide access control
-// Initialize StorageManager instances
 const storage = new StorageManager('usuarios.json', './data');
 const configStorage = new StorageManager('access-config.json', './data');
 let accessControl = configStorage.JSONget('accessControl');
@@ -74,7 +72,17 @@ export const verifyToken = (req, res, next) => {
     next();
   });
 };
-
+let userpermissions = [
+  "accounts",
+  "file_manager",
+  "manage_servers",
+  "making_servers",
+  "monitor_servers",
+  "manage_java",
+  "manage_plugins",
+  "system_monitoring",
+  "system_settings"
+]
 router.post('/register', async (req, res) => {
   const { username, email, password } = req.body;
   console.log(username, email, password);
@@ -96,7 +104,7 @@ router.post('/register', async (req, res) => {
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
-    users[username] = { username, email, password: hashedPassword };
+    users[username] = { username, email, password: hashedPassword, permissions: userpermissions };
     storage.JSONset('users', users);
     return res.status(201).json({ message: 'Usuario registrado exitosamente' });
   } catch (error) {
