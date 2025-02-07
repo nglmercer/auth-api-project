@@ -111,28 +111,48 @@
     document.getElementById('modifyPermissionsButton').addEventListener('click', () => {
       alert('Funcionalidad para modificar permisos aún no implementada.');
     });
-    function fetch_get(url) {
-      return new Promise((resolve, reject) => {
-        fetch(url)
-          .then(response => response.json())
-          .then(data => resolve(data))
-          .catch(error => reject(error));
-      });
-    }
-    function fetch_post(url, data) {
-      return new Promise((resolve, reject) => {
-        fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(data)
-        })
-          .then(response => response.json())
-          .then(data => resolve(data))
-          .catch(error => reject(error));
-      });
-    }
+function fetch_get(url) {
+  const token = localStorage.getItem('token'); // Obtener el token del localStorage
+
+  return new Promise((resolve, reject) => {
+    fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}` // Agregar el token al encabezado
+      }
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Error HTTP: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => resolve(data))
+      .catch(error => reject(error));
+  });
+}
+function fetch_post(url, data) {
+  const token = localStorage.getItem('token'); // Obtener el token del localStorage
+
+  return new Promise((resolve, reject) => {
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}` // Agregar el token al encabezado
+      },
+      body: JSON.stringify(data)
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Error HTTP: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => resolve(data))
+      .catch(error => reject(error));
+  });
+}
     setTimeout( async () => {
       fetch_get('http://localhost:3000/auth/system/accessInfo').then(data => console.log(data));
     }, 2000);
