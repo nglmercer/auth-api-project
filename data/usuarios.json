@@ -4,6 +4,11 @@
       "username": "testuser",
       "email": "test@example.com",
       "password": "$2b$10$t.LckGAgEHXrRFwjEOu9zOEZcFcQQsl1AmNOJk8.OHBzHiGV3BcqC"
+    },
+    "123@gmail.com": {
+      "username": "123@gmail.com",
+      "email": "123@gmail.com",
+      "password": "$2b$10$xteEFw3m9sIoT24pwxYHB.wLQjpCTtscCHP1hvLjceDNMdw6J9w9C"
     }
   }
 }
