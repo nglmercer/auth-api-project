@@ -263,4 +263,34 @@ router.get('/access/:username', verifyToken, (req, res) => {
 
   return res.json(accessStatus);
 });
+router.delete('/delete-account', async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: 'El nombre de usuario y la contraseña son obligatorios' });
+  }
+
+  const users = storage.JSONget('users') || {};
+  const user = users[username];
+
+  if (!user) {
+    return res.status(404).json({ error: 'Usuario no encontrado' });
+  }
+
+  try {
+    // Verificar que la contraseña sea correcta
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ error: 'Contraseña incorrecta' });
+    }
+
+    // Eliminar la cuenta del usuario
+    delete users[username];
+    storage.JSONset('users', users);
+
+    return res.status(200).json({ message: 'Cuenta eliminada exitosamente' });
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al eliminar la cuenta' });
+  }
+});
 export default router;
