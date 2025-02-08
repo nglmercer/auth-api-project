@@ -219,7 +219,36 @@ router.delete('/access/:username', verifyToken, (req, res) => {
   return res.json({ message: 'Access removed for user', username });
 });
 
+router.post('/change-password', async (req, res) => {
+  const { username, currentPassword, newPassword } = req.body;
 
+  if (!username || !currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'El nombre de usuario, la contraseña actual y la nueva contraseña son obligatorios' });
+  }
+
+  const users = storage.JSONget('users') || {};
+  const user = users[username];
+
+  if (!user) {
+    return res.status(404).json({ error: 'Usuario no encontrado' });
+  }
+
+  try {
+    const passwordMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ error: 'Contraseña actual incorrecta' });
+    }
+
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedNewPassword;
+    users[username] = user;
+    storage.JSONset('users', users);
+
+    return res.status(200).json({ message: 'Contraseña cambiada exitosamente' });
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al cambiar la contraseña' });
+  }
+});
 // Get user access status
 router.get('/access/:username', verifyToken, (req, res) => {
   const { username } = req.params;
