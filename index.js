@@ -1,7 +1,6 @@
 import express from 'express';
 import authRouter from './authRouter.js';
 import path from 'path'; // Importa el módulo path para manejar rutas de archivos
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
