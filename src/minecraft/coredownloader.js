@@ -1,12 +1,17 @@
 import axios from "axios";
 import path from "path";
-import * as cheerio from 'cheerio';
-import { readCoresFile, writeCoresFile, isDataRecent, fetchData, logger } from '../utils/utils.js';
+import * as cheerio from "cheerio";
+import { readCoresFile, writeCoresFile, isDataRecent, fetchData, logger } from "../utils/utils.js";
 import CORES_URL_GEN from "./coresURLGenerator.js";
 
-const URL = 'https://getbukkit.org/download/spigot';
-const manifestUrl = 'https://piston-meta.mojang.com/mc/game/version_manifest.json';
-const coresFilePath = path.join(process.cwd(), 'cores.json');
+const URLS = {
+    SPIGOT: "https://getbukkit.org/download/spigot",
+    MANIFEST: "https://piston-meta.mojang.com/mc/game/version_manifest.json",
+    PURPUR: "https://api.purpurmc.org/v2/purpur/",
+    MAGMA: "https://api.magmafoundation.org/api/v2/allVersions"
+};
+
+const coresFilePath = path.join(process.cwd(), "cores.json");
 
 const PREDEFINED = {
     SERVER_CORES: {
@@ -18,151 +23,112 @@ const PREDEFINED = {
         spigot: { name: "spigot", displayName: "Spigot", versionsMethod: "spigot", urlGetMethod: "spigot" }
     }
 };
-
 export const getSpigotVersions = async () => {
-        try {
-            const { data } = await axios.get(URL);
-            const $ = cheerio.load(data);
-            const versions = [];
-            
-            $('.download-pane').each((_, element) => {
-                const version = $(element).find('div.col-sm-3 h2').text().trim();
-                const size = $(element).find('div.col-sm-2 h3').text().trim();
-                const releaseDate = $(element).find('div.col-sm-3:nth-of-type(2) h3').text().trim();
-                const downloadLink = $(element).find('a.btn-download').attr('href');
-                
-                if (version && downloadLink) {
-                    versions.push({ version, size, releaseDate, downloadLink });
-                }
-            });
-    
-            console.log(JSON.stringify(versions, null, 2));
-            return JSON.parse(JSON.stringify(versions, null, 2));
-        } catch (error) {
-            console.error('Error obteniendo las versiones:', error);
-        }
+    try {
+        const { data } = await axios.get(URLS.SPIGOT, {
+            headers: { "User-Agent": "Mozilla/5.0" }
+        });
+
+        const $ = cheerio.load(data);
+        const versions = [];
+
+        $('.download-pane').each((_, element) => {
+            const version = $(element).find('div.col-sm-3 h2').text().trim();
+            const size = $(element).find('div.col-sm-2 h3').text().trim();
+            const releaseDate = $(element).find('div.col-sm-3:nth-of-type(2) h3').text().trim();
+            const downloadLink = $(element).find('a.btn-download').attr('href');
+
+            if (version && downloadLink) {
+                versions.push({ version, size, releaseDate, downloadLink });
+            }
+        });
+
+        //console.log(versions); // Debugging
+        return versions;
+    } catch (error) {
+        console.error('Error obteniendo las versiones:', error);
+        return [];
+    }
 };
 
 export const getAllMinecraftVersions = async () => {
-    const manifest = await fetchData(manifestUrl);
-    const versions = {};
+    try {
+        const manifest = await fetchData(URLS.MANIFEST);
+        const versions = {};
 
-    await Promise.all(manifest.versions.map(async (version) => {
-        try {
-            const versionInfo = await fetchData(version.url);
-            if (versionInfo.downloads && versionInfo.downloads.server) {
-                versions[version.id] = versionInfo.downloads.server.url;
+        await Promise.all(manifest.versions.map(async ({ id, url }) => {
+            try {
+                const versionInfo = await fetchData(url);
+                if (versionInfo?.downloads?.server) {
+                    versions[id] = versionInfo.downloads.server.url;
+                }
+            } catch (error) {
+                logger.error(`Error obteniendo versión ${id}:`, error.message);
             }
-        } catch (error) {
-            logger.error(`Error fetching version details for ${version.id}:`, error.message);
-        }
-    }));
-    console.log(JSON.stringify(versions, null, 2));
-    return versions;
+        }));
+        return versions;
+    } catch (error) {
+        logger.error("Error obteniendo todas las versiones de Minecraft:", error.message);
+        return {};
+    }
 };
 
-export const getvanillacore = async (cb = (data) => { console.log(data); }) => {
+export const getVanillaCore = async () => {
     let cachedData = readCoresFile(coresFilePath);
-
     if (cachedData && isDataRecent(cachedData)) {
-        logger.log('Usando datos cacheados');
-        const sortedCachedData = Object.keys(cachedData.versions)
-            .filter(version => version.length <= 7)
-            .sort((a, b) => a.length - b.length || a.localeCompare(b));
-        cb(sortedCachedData);
-        return;
+        logger.log("Usando datos cacheados");
+        return Object.keys(cachedData.versions).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
     }
 
-    logger.log('Obteniendo datos de la red');
+    logger.log("Obteniendo datos de la red");
     const allVersions = await getAllMinecraftVersions();
-    const sortedAllVersions = Object.keys(allVersions)
-        .filter(version => version.length <= 7)
-        .sort((a, b) => a.length - b.length || a.localeCompare(b));
-
-    const newData = {
-        lastUpdated: new Date().toISOString(),
-        versions: allVersions
-    };
-    writeCoresFile(coresFilePath, newData);
-    cb(sortedAllVersions);
+    writeCoresFile(coresFilePath, { lastUpdated: new Date().toISOString(), versions: allVersions });
+    return Object.keys(allVersions).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 };
 
-export const getCoreVersions = async (core, cb) => {
+export const getCoreVersions = async (core) => {
     const coreItem = PREDEFINED.SERVER_CORES[core];
-    if (!coreItem) {
-        cb(false);
-        return;
-    }
+    if (!coreItem) return false;
 
-    const name = coreItem.name || coreItem.versionsMethod;
     switch (coreItem.versionsMethod) {
-        case "vanilla":
-            await getvanillacore(cb);
-            break;
-        case "externalURL":
-            CORES_URL_GEN.getAllCoresByExternalURL(coreItem.versionsUrl, cb, name);
-            break;
-        case "paper":
-            CORES_URL_GEN.getAllPaperLikeCores(cb, coreItem.name, name);
-            break;
-        case "purpur":
-            CORES_URL_GEN.getAllPurpurCores(cb, name);
-            break;
-        case "magma":
-            CORES_URL_GEN.getAllMagmaCores(cb, name);
-            break;
-        case "spigot":
-            const versions = await getSpigotVersions();
-            cb(versions);
-            break;
-        default:
-            cb(false);
-            break;
+        case "vanilla": return await getVanillaCore();
+        case "externalURL": return await CORES_URL_GEN.getAllCoresByExternalURL(coreItem.versionsUrl, coreItem.name);
+        case "paper": return await CORES_URL_GEN.getAllPaperLikeCores(coreItem.name);
+        case "purpur": return await fetchData(URLS.PURPUR).then(data => data?.versions.reverse() || []);
+        case "magma": return await fetchData(URLS.MAGMA).then(data => data || []);
+        case "spigot": return await getSpigotVersions().then(data => data || []);
+        default: return false;
     }
 };
 
-export const getCoreVersionURL = async (core, version, cb) => {
+export const getCoreVersionURL = async (core, version) => {
     const coreItem = PREDEFINED.SERVER_CORES[core];
-    if (!coreItem || !version) {
-        cb(false);
-        return;
-    }
+    if (!coreItem || !version) return false;
 
     switch (coreItem.urlGetMethod) {
-        case "vanilla":
-            const allVersions = await getAllMinecraftVersions();
-            cb(allVersions[version]);
-            break;
-        case "externalURL":
-            CORES_URL_GEN.getCoreByExternalURL(coreItem.versionsUrl, version, cb);
-            break;
-        case "paper":
-            CORES_URL_GEN.getPaperCoreURL(coreItem.name, version, cb);
-            break;
-        case "purpur":
-            CORES_URL_GEN.getPurpurCoreURL(version, cb);
-            break;
-        case "magma":
-            CORES_URL_GEN.getMagmaCoreURL(version, cb);
-            break;
-        default:
-            cb(false);
-            break;
+        case "vanilla": return (await getAllMinecraftVersions())[version] || false;
+        case "externalURL": return await CORES_URL_GEN.getCoreByExternalURL(coreItem.versionsUrl, version);
+        case "paper": return await CORES_URL_GEN.getPaperCoreURL(coreItem.name, version);
+        case "purpur": return `https://api.purpurmc.org/v2/purpur/${version}/latest/download`;
+        case "magma": return `https://api.magmafoundation.org/api/v2/${version}/latest/download`;
+        default: return false;
     }
 };
 
 export const getCoresList = () => PREDEFINED.SERVER_CORES;
-console.log(getCoresList());
-//console.log(getCoreVersions("spigot",(data)=>{console.log(data)}));
-//console.log(getCoreVersionURL("spigot", "1.21",(data)=>{console.log(data)}));
-//console.log(getAllMinecraftVersions());
-console.log(getvanillacore());
-//console.log(getSpigotVersions());
+
 export default {
     getSpigotVersions,
     getAllMinecraftVersions,
-    getvanillacore,
+    getVanillaCore,
     getCoreVersions,
     getCoreVersionURL,
     getCoresList
 };
+
+//console.log(getCoresList());
+console.log(getCoreVersions("spigot"));
+//console.log(getCoreVersionURL("spigot", "1.21",(data)=>{console.log(data)}));
+//console.log(getAllMinecraftVersions());
+//zconsole.log(getVanillaCore());
+//console.log(getSpigotVersions());
