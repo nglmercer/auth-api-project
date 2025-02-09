@@ -240,7 +240,7 @@ console.log(storage.keys());          // ["123", "algo"] */
 
 // Limpiar el almacenamiento
 //storage.clear();
-console.log(storage.getAll());          // []
+//console.log(storage.getAll());          // []
 const getDataByURL = (url, cb) => {
   axios
       .get(url)
@@ -524,6 +524,7 @@ export {
   LanguageManager, 
   storage, 
   getDataByURL,
+  Logger,
   logger, 
   isObjectsValid, 
   generateSecureID, 

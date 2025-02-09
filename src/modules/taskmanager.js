@@ -1,4 +1,3 @@
-import { logger, StorageManager } from "../utils/utils.js";
 import path from "path";
 import axios from "axios";
 import fs from "fs";
@@ -6,6 +5,8 @@ import { pipeline } from "stream/promises";
 import decompress from "decompress";
 import colors from "colors";
 import { v4 as uuidv4 } from 'uuid';
+import { Logger, StorageManager } from "../utils/utils.js";
+const tasklogger = new Logger();
 const taskStorage = new StorageManager('tasks.json', './data');
 const PREDEFINED = {
     TASK_STATUS: {
@@ -52,7 +53,7 @@ class TaskManager {
             updatedAt: Date.now()
         };
         this.saveTasks();
-        logger.log("{{console.taskAdded}}", colors.cyan(newTaskID), colors.cyan(data.type));
+        tasklogger.log("{{console.taskAdded}}", colors.cyan(newTaskID), colors.cyan(data.type));
         return newTaskID;
     }
 
@@ -94,10 +95,10 @@ class TaskManager {
             this.saveTasks();
             this.saveArchivedTasks();
     
-            logger.log("{{console.taskArchived}}", colors.green(taskID));
+            tasklogger.log("{{console.taskArchived}}", colors.green(taskID));
             return true;
         } else {
-            logger.warn("Archivo no encontrado, no se archivará:", task.path);
+            tasklogger.warn("Archivo no encontrado, no se archivará:", task.path);
             return false;
         }
     }
