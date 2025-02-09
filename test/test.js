@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import assert from 'assert';
-import UserManager from '../UserManager.js';
+import UserManager from '../src/UserManager.js';
 
 // Helper para probar excepciones
 async function assertThrowsAsync(fn, errorMessage) {

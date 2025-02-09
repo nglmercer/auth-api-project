@@ -1,0 +1,17 @@
+{
+  "nueva_carpeta1": {
+    "name": "nueva_carpeta1",
+    "path": "servers/nueva_carpeta1",
+    "size": 0,
+    "modified": "2025-02-09T03:18:52.019Z",
+    "files": [
+      {
+        "name": "subcarpeta",
+        "path": "servers/nueva_carpeta1/subcarpeta",
+        "size": 4096,
+        "modified": "2025-02-09T03:18:52.020Z",
+        "isDirectory": true
+      }
+    ]
+  }
+}

@@ -1,7 +1,7 @@
 {
-  "accessControl": {
-    "globalAccessEnabled": false,
-    "timePermissions": {},
-    "temporaryAccess": {}
+    "accessControl": {
+      "globalAccessEnabled": false,
+      "timePermissions": {},
+      "temporaryAccess": {}
+    }
   }
-}
