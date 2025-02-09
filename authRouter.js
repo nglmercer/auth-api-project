@@ -2,7 +2,6 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import {UserManager, accessControl} from './UserManager.js'; // Importa la clase UserManager
-import StorageManager from './utils.js';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'YOUR_TOKEN_HERE'; // Usa una variable de entorno para la clave secreta
