@@ -23,7 +23,7 @@ const PREDEFINED = {
         spigot: { name: "spigot", displayName: "Spigot", versionsMethod: "spigot", urlGetMethod: "spigot" }
     }
 };
-export const getSpigotVersions = async () => {
+const getSpigotVersions = async () => {
     try {
         const { data } = await axios.get(URLS.SPIGOT, {
             headers: { "User-Agent": "Mozilla/5.0" }
@@ -51,7 +51,7 @@ export const getSpigotVersions = async () => {
     }
 };
 
-export const getAllMinecraftVersions = async () => {
+const getAllMinecraftVersions = async () => {
     try {
         const manifest = await fetchData(URLS.MANIFEST);
         const versions = {};
@@ -73,7 +73,7 @@ export const getAllMinecraftVersions = async () => {
     }
 };
 
-export const getVanillaCore = async () => {
+const getVanillaCore = async () => {
     let cachedData = readCoresFile(coresFilePath);
     if (cachedData && isDataRecent(cachedData)) {
         logger.log("Usando datos cacheados");
@@ -86,7 +86,7 @@ export const getVanillaCore = async () => {
     return Object.keys(allVersions).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 };
 
-export const getCoreVersions = async (core) => {
+const getCoreVersions = async (core) => {
     const coreItem = PREDEFINED.SERVER_CORES[core];
     if (!coreItem) return false;
 
@@ -101,7 +101,7 @@ export const getCoreVersions = async (core) => {
     }
 };
 
-export const getCoreVersionURL = async (core, version) => {
+const getCoreVersionURL = async (core, version) => {
     const coreItem = PREDEFINED.SERVER_CORES[core];
     if (!coreItem || !version) return false;
 
@@ -115,9 +115,9 @@ export const getCoreVersionURL = async (core, version) => {
     }
 };
 
-export const getCoresList = () => PREDEFINED.SERVER_CORES;
+const getCoresList = () => PREDEFINED.SERVER_CORES;
 
-export default {
+export {
     getSpigotVersions,
     getAllMinecraftVersions,
     getVanillaCore,

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-const ALLOWED_EXTENSIONS = ['json', 'yaml', 'txt', 'properties', 'js'];
+const ALLOWED_EXTENSIONS = ['json', 'yaml', 'txt', 'properties', 'sh', 'bat', 'js'];
 
 export default class FileManager {
   constructor(basePath = '.') {
@@ -31,9 +31,6 @@ export default class FileManager {
     }
 
     const filePath = path.join(folderPath, fileName);
-    if (fs.existsSync(filePath)) {
-      throw new Error(`El archivo '${fileName}' ya existe en la carpeta '${folderName}'.`);
-    }
 
     fs.writeFileSync(filePath, content, { encoding: 'utf8' });
     return filePath;

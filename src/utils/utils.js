@@ -241,16 +241,25 @@ console.log(storage.keys());          // ["123", "algo"] */
 // Limpiar el almacenamiento
 //storage.clear();
 //console.log(storage.getAll());          // []
-const getDataByURL = (url, cb) => {
-  axios
-      .get(url)
-      .then(function (response) {
-          cb(response.data);
-      })
-      .catch(function (error) {
-          cb(false);
-          return console.error(error.data);
-      });
+const getDataByURL = async (url, cb) => {
+  if (cb) {
+    axios
+    .get(url)
+    .then(function (response) {
+        cb(response.data);
+    })
+    .catch(function (error) {
+        cb(false);
+        return console.error(error.data);
+    });
+  }
+  try {
+      const response = await axios.get(url);
+      return response.data;
+  } catch (error) {
+      logger.warning(`Failed to fetch data from ${url}:`, error.message);
+      return null;
+  }
 };
 
 class Logger {
