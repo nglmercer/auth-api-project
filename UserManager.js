@@ -1,10 +1,39 @@
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 import StorageManager from './utils.js';
+const configStorage = new StorageManager('access-config.json', './data');
+const saveAccessControl = configStorage.JSONget('accessControl');
+let accessControl = isEmptyObject(saveAccessControl) 
+    ? {
+        "globalAccessEnabled": false,
+        "timePermissions": {},
+        "temporaryAccess": {}
+    } 
+    : saveAccessControl;
+function isEmptyObject(obj) {
+  return obj && Object.keys(obj).length === 0 && obj.constructor === Object;
+};
 
-export default class UserManager {
+const userpermissions = [
+    "accounts",
+    "file_manager",
+    "manage_servers",
+    "making_servers",
+    "monitor_servers",
+    "manage_java",
+    "manage_plugins",
+    "system_monitoring",
+    "system_settings"
+];
+
+const JWT_SECRET = 'tu_secreto_jwt'; // Cambia esto por una clave secreta segura
+const TOKEN_EXPIRATION = '1h'; // Tiempo de expiración del token
+
+class UserManager {
   constructor() {
     this.storage = new StorageManager('usuarios.json', './data');
     this.users = this.storage.JSONget('users') || {};
+    this.sessions = {}; // Almacenar sesiones activas
   }
 
   // Guardar los usuarios en el archivo
@@ -132,61 +161,87 @@ export default class UserManager {
   getAllUsers() {
     return this.users;
   }
+
+  // Iniciar sesión y generar token
+  async login(username, password) {
+    if (!username || !password) {
+      throw new Error('El nombre de usuario y la contraseña son obligatorios');
+    }
+
+    const user = this.users[username];
+    if (!user) {
+      throw new Error('Usuario no encontrado');
+    }
+
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      throw new Error('Contraseña incorrecta');
+    }
+
+    const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: TOKEN_EXPIRATION });
+    this.sessions[username] = token; // Almacenar el token en la sesión
+
+    return { token };
+  }
+
+  // Verificar token y permisos
+  verifyToken(token, requiredPermission) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      const user = this.users[decoded.username];
+
+      if (!user) {
+        throw new Error('Usuario no encontrado');
+      }
+
+      if (requiredPermission && !user.permissions.includes(requiredPermission)) {
+        throw new Error('Permiso denegado');
+      }
+
+      return user;
+    } catch (error) {
+      throw new Error('Token inválido o expirado');
+    }
+  }
+
+  // Cerrar sesión
+  logout(username) {
+    if (!username) {
+      throw new Error('El nombre de usuario es obligatorio');
+    }
+
+    if (this.sessions[username]) {
+      delete this.sessions[username];
+      return { message: 'Sesión cerrada exitosamente' };
+    } else {
+      throw new Error('No hay una sesión activa para este usuario');
+    }
+  }
 }
-/*
-import express from 'express';
-import jwt from 'jsonwebtoken';
-import UserManager from './UserManager.js'; // Importar la clase UserManager
-
-const router = express.Router();
-const JWT_SECRET = 'YOUR_TOKEN_HERE';
-const userManager = new UserManager(); // Crear una instancia de UserManager
-
-// Ruta para registrar un usuario
-router.post('/register', async (req, res) => {
-  const { username, email, password } = req.body;
-
-  try {
-    const result = await userManager.createUser(username, email, password);
-    return res.status(201).json(result);
-  } catch (error) {
-    return res.status(400).json({ error: error.message });
+const verifyToken = (req, res, next) => {
+  if (accessControl.globalAccessEnabled) {
+    // Si el acceso global está habilitado, no se verifica el token
+    return next();
   }
-});
 
-// Ruta para eliminar un usuario
-router.delete('/delete-account', async (req, res) => {
-  const { username, password } = req.body;
-
-  try {
-    const result = await userManager.deleteUser(username, password);
-    return res.status(200).json(result);
-  } catch (error) {
-    return res.status(400).json({ error: error.message });
+  const authHeader = req.headers['authorization'];
+  if (!authHeader) {
+    return res.status(401).json({ error: 'No se proporcionó token' });
   }
-});
 
-// Ruta para cambiar la contraseña
-router.post('/change-password', async (req, res) => {
-  const { username, currentPassword, newPassword } = req.body;
+  const token = authHeader.split(' ')[1];
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(403).json({ error: 'El token no es válido o ha expirado' });
+    }
 
-  try {
-    const result = await userManager.changePassword(username, currentPassword, newPassword);
-    return res.status(200).json(result);
-  } catch (error) {
-    return res.status(400).json({ error: error.message });
-  }
-});
-
-// Ruta para obtener todos los usuarios (solo para administradores)
-router.get('/users', (req, res) => {
-  try {
-    const users = userManager.getAllUsers();
-    return res.status(200).json(users);
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-export default router;
-*/
+    req.user = decoded;
+    next();
+  });
+};
+export {
+  UserManager,
+  verifyToken,
+  userpermissions,
+  accessControl
+}
