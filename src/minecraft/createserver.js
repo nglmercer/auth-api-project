@@ -112,46 +112,63 @@ export const getPlatformInfo = () => {
     }
   
     writeStartFiles(serverName, coreFileName, startParameters, javaExecutablePath, serverPort) {
-      try {
-        // Validar que los parámetros requeridos no sean vacíos o inválidos
-        if (!serverName || !coreFileName || !javaExecutablePath || !serverPort) {
-          throw new Error("Parámetros inválidos: asegúrate de proporcionar todos los valores requeridos.");
+        try {
+            if (!serverName || !coreFileName || !javaExecutablePath || !serverPort) {
+                throw new Error("Parámetros inválidos: asegúrate de proporcionar todos los valores requeridos.");
+            }
+    
+            const platformInfo = getPlatformInfo();
+            const fullStartParameters = `${startParameters} -Dfile.encoding=UTF-8 -jar "${coreFileName}" nogui`;
+            const fullJavaExecutablePath = javaExecutablePath.startsWith(".") || javaExecutablePath.startsWith("/") 
+                ? javaExecutablePath 
+                : path.resolve(javaExecutablePath); 
+    
+            const serverDir = serverName;
+            this.fileManager.createFile(serverDir, "eula.txt", "eula=true");
+    
+            // Definir scripts según la plataforma
+            const startScripts = {
+                termux: `#!/data/data/com.termux/files/usr/bin/bash
+    cd "$(dirname "$0")"
+    export LD_LIBRARY_PATH=/data/data/com.termux/files/usr/lib
+    "${fullJavaExecutablePath}" ${fullStartParameters}`,
+    
+                windows: `@echo off
+    chcp 65001>nul
+    cd servers
+    cd ${serverName}
+    "${fullJavaExecutablePath}" ${fullStartParameters}`,
+    
+                linux: `#!/bin/bash
+    cd servers
+    cd ${serverName}
+    "${fullJavaExecutablePath}" ${fullStartParameters}`
+            };
+    
+            console.log("[DEBUG] Start scripts:", startScripts);
+    
+            const scriptName = platformInfo.isWindows ? "start.bat" : "start.sh";
+            this.fileManager.createFile(serverDir, scriptName, startScripts[platformInfo.isTermux ? "termux" : platformInfo.isWindows ? "windows" : "linux"]);
+    
+            this.fileManager.createFile(
+                serverDir,
+                "server.properties",
+                `server-port=${serverPort}
+    query.port=${serverPort}
+    enable-query=true
+    online-mode=false
+    motd=\u00A7f${serverName}`
+            );
+    
+            console.log(`✅ Archivos de inicio creados exitosamente para el servidor '${serverName}'.`);
+            return true;
+    
+        } catch (error) {
+            console.error("❌ Error al escribir archivos de inicio:", error.message);
+            return false;
         }
-  
-        const platformInfo = getPlatformInfo();
-        const fullStartParameters = `-Dfile.encoding=UTF-8 ${startParameters} -jar ${coreFileName} nogui`;
-        const fullJavaExecutablePath = path.resolve(javaExecutablePath);
-        
-        const serverDir = serverName;
-        this.fileManager.createFile(serverDir, "eula.txt", "eula=true");
-  
-        // Definir scripts según la plataforma
-        const startScripts = {
-          termux: `#!/data/data/com.termux/files/usr/bin/bash\ncd \"$(dirname \"$0\")\"\nexport LD_LIBRARY_PATH=/data/data/com.termux/files/usr/lib\n\"${fullJavaExecutablePath}\" ${fullStartParameters}`,
-          windows: `@echo off\nchcp 65001>nul\ncd servers\ncd ${serverName}\n\"${fullJavaExecutablePath}\" ${fullStartParameters}`,
-          linux: `cd servers\ncd ${serverName}\n\"${fullJavaExecutablePath}\" ${fullStartParameters}`,
-        };
-  
-        // Determinar el nombre del script según la plataforma
-        const scriptName = platformInfo.isTermux ? "start.sh" : platformInfo.isWindows ? "start.bat" : "start.sh";
-  
-        this.fileManager.createFile(serverDir, scriptName, startScripts[platformInfo.isTermux ? "termux" : platformInfo.isWindows ? "windows" : "linux"]);
-  
-        // Escribir el archivo de configuración del servidor
-        this.fileManager.createFile(
-          serverDir,
-          "server.properties",
-          `server-port=${serverPort}\nquery.port=${serverPort}\nenable-query=true\nonline-mode=false\nmotd=\u00A7f${serverName}`
-        );
-  
-        console.log(`Archivos de inicio creados exitosamente para el servidor '${serverName}'.`);
-        return true;
-        
-      } catch (error) {
-        console.error("❌ Error al escribir archivos de inicio:", error.message);
-        return false;
-      }
     }
+    
   }  
   const newServerManager = new ServerManager();
   export async function startJavaServerGeneration(
@@ -198,7 +215,9 @@ export const getPlatformInfo = () => {
       console.log("[DEBUG] Core download URL:", coreDownloadURL);
   
       const coreFilePath = path.join(serverDirectoryPath, coreFileName);
-      await downloadFile(coreDownloadURL, coreFilePath);
+      //writeStartFiles(serverName, coreFileName, startParameters, javaExecutablePath, serverPort) 
+      newServerManager.writeStartFiles(serverName, core+ coreVersion, startParameters, javaExecutablePath, serverPort);
+      //await downloadFile(coreDownloadURL, coreFilePath);
   
       console.log(`✅ Core downloaded successfully: ${coreFilePath}`);
       cb(true);
@@ -207,10 +226,7 @@ export const getPlatformInfo = () => {
       cb(false);
     }
   }
-  
-  /**
-   * Descarga un archivo desde una URL y lo guarda en una ruta especificada.
-   */
+
 
 
 async function downloadFile(url, outputPath) {
@@ -241,7 +257,7 @@ async function downloadFile(url, outputPath) {
     "MyMinecraftServer",  // Nombre del servidor
     "paper",              // Core (tipo de servidor)
     "1.21",             // Versión del core
-    "-Xmx4G -Xms2G",      // Parámetros de inicio
+    "",      // Parámetros de inicio
     "./binaries/java/17/bin/java",  // Ruta de ejecución de Java
     25565,                // Puerto del servidor
     (result) => {         // Callback de finalización
