@@ -5,7 +5,7 @@ import {
   createsubfolder,
   getfolderinfo,
   updatefolderinfo
-}from '../modules/FileManager.js';
+}from '../modules/servers.js';
 
 const router = express.Router();
 

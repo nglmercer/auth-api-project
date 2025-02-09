@@ -1,5 +1,6 @@
 import express from 'express';
 import authRouter from './authRouter.js';
+import filesRouter from './routers/filemanager.js';
 import path from 'path'; // Importa el módulo path para manejar rutas de archivos
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,11 +15,7 @@ app.use(express.static(publicPath));
 
 // Rutas de autenticación
 app.use('/auth', authRouter);
-
-// Ruta de prueba
-app.get('/', (req, res) => {
-  res.json({ message: 'API de autenticación funcionando' });
-});
+app.use('/files', filesRouter);
 
 // Iniciar el servidor
 app.listen(PORT, () => {
