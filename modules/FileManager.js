@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-const ALLOWED_EXTENSIONS = ['json', 'yaml', 'txt', 'properties'];
+const ALLOWED_EXTENSIONS = ['json', 'yaml', 'txt', 'properties', 'js'];
 
 export default class FileManager {
   constructor(basePath = '.') {

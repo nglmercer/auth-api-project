@@ -9,20 +9,42 @@ export default class FolderManager {
     }
   }
 
-  // Crear una nueva subcarpeta
-  createFolder(folderName) {
+  // Crear una nueva carpeta o subcarpeta
+  createFolder(folderName, isSubFolder = false) {
     const folderPath = path.join(this.basePath, folderName);
     if (fs.existsSync(folderPath)) {
       throw new Error(`La carpeta '${folderName}' ya existe.`);
     }
     fs.mkdirSync(folderPath, { recursive: true });
 
-    // Devolver detalles de la carpeta
+    // Si es una subcarpeta, no devolvemos detalles adicionales
+    if (isSubFolder) {
+      return {
+        name: folderName,
+        path: path.relative(process.cwd(), folderPath),
+        size: 0,
+        modified: new Date().toISOString(),
+        isDirectory: true
+      };
+    }
+
+    // Devolver detalles actualizados de la carpeta principal
+    return this.getFolderDetails(folderName);
+  }
+
+  // Obtener detalles actualizados de una carpeta
+  getFolderDetails(folderName) {
+    const folderPath = path.join(this.basePath, folderName);
+    if (!fs.existsSync(folderPath)) {
+      throw new Error(`La carpeta '${folderName}' no existe.`);
+    }
+    const stats = fs.statSync(folderPath);
     return {
       name: folderName,
-      path: folderPath,
+      path: path.relative(process.cwd(), folderPath), // Ruta relativa
       size: this.getFolderSize(folderPath),
-      files: this.listFilesInFolder(folderPath),
+      modified: stats.mtime.toISOString(), // Fecha de la última modificación
+      files: this.listFilesInFolder(folderPath), // Listar archivos y subcarpetas
     };
   }
 
@@ -34,28 +56,27 @@ export default class FolderManager {
       return files.reduce((total, file) => {
         const filePath = path.join(folderPath, file);
         const fileStats = fs.statSync(filePath);
-        return total + (fileStats.isDirectory() ? this.getFolderSize(filePath) : fileStats.size);
+        return total + (fileStats.isDirectory() ? 0 : fileStats.size); // Ignorar subdirectorios
       }, 0);
     }
     return stats.size;
   }
 
-  // Listar todas las subcarpetas en la ruta base
-  listFolders() {
-    return fs.readdirSync(this.basePath).filter((item) => {
-      const itemPath = path.join(this.basePath, item);
-      return fs.statSync(itemPath).isDirectory();
-    });
-  }
-
-  // Listar archivos dentro de una carpeta específica
+  // Listar archivos y subcarpetas dentro de una carpeta específica (superficialmente)
   listFilesInFolder(folderPath) {
     if (!fs.existsSync(folderPath)) {
       return [];
     }
-    return fs.readdirSync(folderPath).filter((item) => {
+    return fs.readdirSync(folderPath).map((item) => {
       const itemPath = path.join(folderPath, item);
-      return fs.statSync(itemPath).isFile();
+      const stats = fs.statSync(itemPath);
+      return {
+        name: item,
+        path: path.relative(process.cwd(), itemPath), // Ruta relativa
+        size: stats.size,
+        modified: stats.mtime.toISOString(), // Fecha de la última modificación
+        isDirectory: stats.isDirectory(), // Indicar si es un directorio
+      };
     });
   }
 }

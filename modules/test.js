@@ -1,3 +1,4 @@
+import path from 'path';
 import StorageManager from '../utils.js';
 import FolderManager from './FolderManager.js';
 import FileManager from './FileManager.js';
@@ -7,39 +8,56 @@ const storage = new StorageManager('servers.json', './servers');
 const folderManager = new FolderManager('./servers');
 const fileManager = new FileManager('./servers');
 
-// Ejemplo: Crear una carpeta
-const newFolderName = 'nueva_carpeta';
+// Ejemplo: Crear una carpeta principal
+const mainFolderName = 'nueva_carpeta';
 try {
-  const folderDetails = folderManager.createFolder(newFolderName);
-  console.log(`Carpeta creada: ${folderDetails.path}`);
-
-  // Guardar detalles de la carpeta en el StorageManager
-  storage.JSONset(newFolderName, folderDetails);
-  console.log(`Detalles de la carpeta guardados en servers.json`);
+  const folderDetails = folderManager.createFolder(mainFolderName);
+  console.log(`Carpeta creada:`. folderDetails);
 } catch (error) {
   console.error(error.message);
 }
 
-// Ejemplo: Crear un archivo dentro de la nueva carpeta
-const newFileName = 'archivo_ejemplo.json';
+const subFolderName = 'subcarpeta';
 try {
-  const filePath = fileManager.createFile(newFolderName, newFileName, JSON.stringify({ key: 'value' }));
+  const subFolderPath = path.join(mainFolderName, subFolderName);
+  // Crear la subcarpeta y obtener detalles básicos
+  const subFolderDetails = folderManager.createFolder(subFolderPath, true); // isSubFolder = true
+
+  console.log(`Subcarpeta añadida a la carpeta principal en servers.json`);
+} catch (error) {
+  console.error(error.message);
+}
+
+// Ejemplo: Crear un archivo dentro de la subcarpeta
+const newFileName = 'server123.js';
+try {
+  const filePath = fileManager.createFile(
+    path.join(mainFolderName, subFolderName), // Ruta relativa a la subcarpeta
+    newFileName,
+    JSON.stringify({ key: 'value' })
+  );
   console.log(`Archivo creado: ${filePath}`);
 
-  // Actualizar los detalles de la carpeta en el StorageManager
-  const folderDetails = storage.JSONget(newFolderName);
-  folderDetails.files.push(newFileName); // Agregar el nuevo archivo a la lista
-  storage.JSONset(newFolderName, folderDetails);
-
-  console.log(`Detalles de la carpeta actualizados en servers.json`);
 } catch (error) {
   console.error(error.message);
 }
-
-// Ejemplo: Listar archivos en la carpeta
-try {
-  const files = fileManager.listFiles(newFolderName);
-  console.log(`Archivos en la carpeta '${newFolderName}':`, files);
-} catch (error) {
-  console.error(error.message);
+updatefolderinfo(mainFolderName);
+//metodo para agregar la informacion de cada carpeta de ./servers ---> nueva_carpeta <---- nueva_carpeta/subcarpeta agregara la clave con la informacion del archivo
+function updatefolderinfo(folderName) {
+    try {
+      const files = getfolderinfo(folderName);
+      storage.JSONset(folderName, files);
+    } catch (error) {
+      console.error(error.message);
+    }
 }
+function getfolderinfo(folderName) {
+  try {
+    const files = folderManager.getFolderDetails(folderName);
+    console.log(`Archivos en la subcarpeta '${folderName}':`, files);
+    return files;
+  } catch (error) {
+    console.error(error.message);
+  }
+}
+getfolderinfo("nueva_carpeta/subcarpeta");
