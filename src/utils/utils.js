@@ -3,6 +3,7 @@ import path from "path";
 import https from 'https';
 import axios from "axios";
 import colors from "colors";
+import stripAnsi from "strip-ansi";
 import { fileURLToPath } from "url";
 import { createRequire } from 'module';
 
@@ -291,10 +292,14 @@ class Logger {
 
     // Función auxiliar para formatear y registrar mensajes
     async logMessage(level, colorFn, ...text) {
-        const preparedText = `${this.getTimeFormatted()} ${level ? `[${level}] ` : ""}${text.join(" ")}`;
-        console.log(colorFn ? colorFn(preparedText) : preparedText);
-        await this.writeLineToLog(preparedText);
-    }
+      const preparedText = `${this.getTimeFormatted()} ${level ? `[${level}] ` : ""}${text.join(" ")}`;
+      
+      // Mostrar en consola con color
+      console.log(colorFn ? colorFn(preparedText) : preparedText);
+  
+      // Escribir en el log sin colores
+      await this.writeLineToLog(stripAnsi(preparedText));
+  }
 
     // Registrar mensajes de log
     log(...text) {
