@@ -64,10 +64,10 @@ function getfolderinfo(folderName) {
     console.error(error.message);
   }
 }
-createserverfolder("nueva_carpeta1");
+/* createserverfolder("nueva_carpeta1");
 createsubfolder("nueva_carpeta1", "subcarpeta");
 getfolderinfo("nueva_carpeta1/subcarpeta");
-createserverfile("nueva_carpeta1/subcarpeta", "server123.js", JSON.stringify({ key: 'value' }));
+createserverfile("nueva_carpeta1/subcarpeta", "server123.js", JSON.stringify({ key: 'value' })); */
 export {
   createserverfolder,
   createserverfile,
