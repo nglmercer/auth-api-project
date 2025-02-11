@@ -55,6 +55,7 @@ const PREDEFINED = {
   };
 import { logger } from "../utils/utils.js";
 export async function prepareJavaForServer(javaVersion) {
+    if (typeof javaVersion !== 'string') javaVersion = String(javaVersion ?? '');
     try {
         let javaExecutablePath = "";
         let javaDownloadURL = "";
@@ -111,18 +112,19 @@ export const getPlatformInfo = () => {
       this.fileManager = new FileManager(basePath);
     }
   
-    writeStartFiles(serverName, coreFileName, startParameters, javaExecutablePath, serverPort) {
+    writeStartFiles(config) {
+      let {serverName, coreFileName, startParameters = "-Xms1G -Xmx2G", javaExecutablePath, serverPort} = config;
         try {
             if (!serverName || !coreFileName || !javaExecutablePath || !serverPort) {
                 throw new Error("Parámetros inválidos: asegúrate de proporcionar todos los valores requeridos.");
             }
     
             const platformInfo = getPlatformInfo();
-            const fullStartParameters = `${startParameters} -Dfile.encoding=UTF-8 -jar "${coreFileName}" nogui`;
+            const fullStartParameters = `${startParameters ? startParameters + " " : ""} -jar "${coreFileName}" nogui`;
             const fullJavaExecutablePath = javaExecutablePath.startsWith(".") || javaExecutablePath.startsWith("/") 
-                ? javaExecutablePath 
-                : path.resolve(javaExecutablePath); 
-    
+            ? `"${javaExecutablePath}/bin/java"`  // En Termux/Linux, Java suele estar en una subcarpeta
+            : `"${path.resolve(javaExecutablePath, "bin", "java.exe")}"`; // En Windows, apunta a java.exe        
+  
             const serverDir = serverName;
             this.fileManager.createFile(serverDir, "eula.txt", "eula=true");
     
@@ -216,7 +218,7 @@ export const getPlatformInfo = () => {
   
       const coreFilePath = path.join(serverDirectoryPath, coreFileName);
       //writeStartFiles(serverName, coreFileName, startParameters, javaExecutablePath, serverPort) 
-      newServerManager.writeStartFiles(serverName, core+ coreVersion, startParameters, javaExecutablePath, serverPort);
+      newServerManager.writeStartFiles({serverName, coreFileName, startParameters, javaExecutablePath, serverPort});
       //await downloadFile(coreDownloadURL, coreFilePath);
   
       console.log(`✅ Core downloaded successfully: ${coreFilePath}`);
@@ -253,19 +255,24 @@ async function downloadFile(url, outputPath) {
 }
 
 
-  startJavaServerGeneration(
-    "MyMinecraftServer",  // Nombre del servidor
-    "paper",              // Core (tipo de servidor)
-    "1.21",             // Versión del core
-    "",      // Parámetros de inicio
-    "./binaries/java/17/bin/java",  // Ruta de ejecución de Java
-    25565,                // Puerto del servidor
-    (result) => {         // Callback de finalización
-      if (result) {
-        console.log("✅ Servidor creado exitosamente.");
-      } else {
-        console.log("❌ Error al crear el servidor.");
-      }
+// install java prepareJavaForServer(17)
+prepareJavaForServer(21)
+// get local java versions getLocalJavaVersions()
+// get java info { }
+console.log(getLocalJavaVersions());
+console.log(getJavaInfoByVersion(getLocalJavaVersions()[0]));
+/* startJavaServerGeneration(
+  "MyMinecraftServer",  // Nombre del servidor
+  "paper",              // Core (tipo de servidor)
+  "1.21",             // Versión del core
+  "-Xms1G -Xmx2G",      // Parámetros de inicio
+  getJavaInfoByVersion(getLocalJavaVersions()[0]).absoluteUnpackPath,  // Ruta de ejecución de Java
+  25565,                // Puerto del servidor
+  (result) => {         // Callback de finalización
+    if (result) {
+      console.log("✅ Servidor creado exitosamente.");
+    } else {
+      console.log("❌ Error al crear el servidor.");
     }
-  );
-  
+  }
+); */

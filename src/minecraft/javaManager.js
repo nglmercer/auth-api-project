@@ -127,8 +127,10 @@ const getLocalJavaVersions = () => {
         .filter(entry => fs.lstatSync(path.join(startPath, entry)).isDirectory());
 };
 
-// Obtener información de Java por versión       
 const getJavaInfoByVersion = (javaVersion) => {
+    if (typeof javaVersion !== 'string') javaVersion = String(javaVersion ?? '');
+    console.log(javaVersion);
+
     if (isTermux()) {
         return {
             isTermux: true,
@@ -136,7 +138,8 @@ const getJavaInfoByVersion = (javaVersion) => {
             packageName: `openjdk-${javaVersion}`,
             installCmd: `pkg install openjdk-${javaVersion}`,
             javaPath: '/data/data/com.termux/files/usr/bin/java',
-            installed: checkJavaVersionTermux(javaVersion)
+            installed: checkJavaVersionTermux(javaVersion),
+            absoluteJavaPath: '/data/data/com.termux/files/usr/bin/java' // Ya es absoluto
         };
     }
 
@@ -159,8 +162,12 @@ const getJavaInfoByVersion = (javaVersion) => {
 
     const resultURL = `https://api.adoptium.net/v3/binary/latest/${javaVersion}/ga/${platform.name}/${arch}/jdk/hotspot/normal/eclipse?project=jdk`;
     const filename = `Java-${javaVersion}-${arch}${platform.ext}`;
-    const downloadPath = path.join('./binaries/java', filename);
-    const unpackPath = path.join('./binaries/java', javaVersion);
+    
+    const relativeDownloadPath = path.join('./binaries/java', filename);
+    const relativeUnpackPath = path.join('./binaries/java', javaVersion);
+
+    const absoluteDownloadPath = path.resolve(relativeDownloadPath);
+    const absoluteUnpackPath = path.resolve(relativeUnpackPath);
 
     return {
         url: resultURL,
@@ -168,10 +175,13 @@ const getJavaInfoByVersion = (javaVersion) => {
         version: javaVersion,
         platformArch: arch,
         platformName: platform.name,
-        downloadPath,
-        unpackPath
+        downloadPath: relativeDownloadPath,
+        unpackPath: relativeUnpackPath,
+        absoluteDownloadPath,
+        absoluteUnpackPath
     };
 };
+
 
 // Obtener ruta de Java
 const getJavaPath = (javaVersion) => {
@@ -234,6 +244,10 @@ export {
     getJavaPath,
     verifyJavaInstallation
 }
+gameVersionToJava('1.8.0');
+console.log(getJavaInfoByVersion());
+console.log(gameVersionToJava('1.8.0'));
+console.log(getLocalJavaVersions());
 /* const assert = require('assert');
 
 // Pruebas para la función gameVersionToJava
