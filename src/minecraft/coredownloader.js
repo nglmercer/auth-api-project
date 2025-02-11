@@ -127,7 +127,7 @@ export {
 };
 
 //console.log(getCoresList());
-console.log(getCoreVersions("spigot"));
+//console.log(getCoreVersions("spigot"));
 //console.log(getCoreVersionURL("spigot", "1.21",(data)=>{console.log(data)}));
 //console.log(getAllMinecraftVersions());
 //zconsole.log(getVanillaCore());

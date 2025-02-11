@@ -106,72 +106,74 @@ export const getPlatformInfo = () => {
       platform: process.platform,
     };
   };
-  
-  export class ServerManager {
+
+export class ServerManager {
     constructor(basePath = "./servers") {
-      this.fileManager = new FileManager(basePath);
+        this.fileManager = new FileManager(basePath);
     }
-  
+
     writeStartFiles(config) {
-      let {serverName, coreFileName, startParameters = "-Xms1G -Xmx2G", javaExecutablePath, serverPort} = config;
+        let { serverName, coreFileName, startParameters = "-Xms1G -Xmx2G", javaExecutablePath, serverPort } = config;
         try {
             if (!serverName || !coreFileName || !javaExecutablePath || !serverPort) {
                 throw new Error("Parámetros inválidos: asegúrate de proporcionar todos los valores requeridos.");
             }
-    
+
             const platformInfo = getPlatformInfo();
             const fullStartParameters = `${startParameters ? startParameters + " " : ""} -jar "${coreFileName}" nogui`;
-            const fullJavaExecutablePath = javaExecutablePath.startsWith(".") || javaExecutablePath.startsWith("/") 
-            ? `"${javaExecutablePath}/bin/java"`  // En Termux/Linux, Java suele estar en una subcarpeta
-            : `"${path.resolve(javaExecutablePath, "bin", "java.exe")}"`; // En Windows, apunta a java.exe        
-  
+            const fullJavaExecutablePath = javaExecutablePath.startsWith(".") || javaExecutablePath.startsWith("/")
+                ? `"${javaExecutablePath}/bin/java"`  // En Termux/Linux, Java suele estar en una subcarpeta
+                : `"${path.resolve(javaExecutablePath, "java.exe")}"`; // En Windows, apunta a java.exe        
+
             const serverDir = serverName;
             this.fileManager.createFile(serverDir, "eula.txt", "eula=true");
-    
+
             // Definir scripts según la plataforma
             const startScripts = {
                 termux: `#!/data/data/com.termux/files/usr/bin/bash
-    cd "$(dirname "$0")"
-    export LD_LIBRARY_PATH=/data/data/com.termux/files/usr/lib
-    "${fullJavaExecutablePath}" ${fullStartParameters}`,
-    
+cd "$(dirname "$0")"
+export LD_LIBRARY_PATH=/data/data/com.termux/files/usr/lib
+"${fullJavaExecutablePath}" ${fullStartParameters}`,
+
                 windows: `@echo off
-    chcp 65001>nul
-    cd servers
-    cd ${serverName}
-    "${fullJavaExecutablePath}" ${fullStartParameters}`,
-    
+chcp 65001>nul
+${this.getChangeDirectoryCommand(serverName)}
+"${fullJavaExecutablePath}" ${fullStartParameters}`,
+
                 linux: `#!/bin/bash
-    cd servers
-    cd ${serverName}
-    "${fullJavaExecutablePath}" ${fullStartParameters}`
+${this.getChangeDirectoryCommand(serverName)}
+"${fullJavaExecutablePath}" ${fullStartParameters}`
             };
-    
+
             console.log("[DEBUG] Start scripts:", startScripts);
-    
+
             const scriptName = platformInfo.isWindows ? "start.bat" : "start.sh";
             this.fileManager.createFile(serverDir, scriptName, startScripts[platformInfo.isTermux ? "termux" : platformInfo.isWindows ? "windows" : "linux"]);
-    
+
             this.fileManager.createFile(
                 serverDir,
                 "server.properties",
                 `server-port=${serverPort}
-    query.port=${serverPort}
-    enable-query=true
-    online-mode=false
-    motd=\u00A7f${serverName}`
+query.port=${serverPort}
+enable-query=true
+online-mode=false
+motd=\u00A7f${serverName}`
             );
-    
+
             console.log(`✅ Archivos de inicio creados exitosamente para el servidor '${serverName}'.`);
             return true;
-    
+
         } catch (error) {
             console.error("❌ Error al escribir archivos de inicio:", error.message);
             return false;
         }
     }
-    
-  }  
+
+    getChangeDirectoryCommand(serverName) {
+        const serverPath = path.join("servers", serverName);
+        return `if not exist "${serverPath}" mkdir "${serverPath}"\ncd "${serverPath}"`;
+    }
+}
   const newServerManager = new ServerManager();
   export async function startJavaServerGeneration(
     serverName,
@@ -256,17 +258,17 @@ async function downloadFile(url, outputPath) {
 
 
 // install java prepareJavaForServer(17)
-prepareJavaForServer(21)
+//prepareJavaForServer(21)
 // get local java versions getLocalJavaVersions()
 // get java info { }
 console.log(getLocalJavaVersions());
 console.log(getJavaInfoByVersion(getLocalJavaVersions()[0]));
-/* startJavaServerGeneration(
+startJavaServerGeneration(
   "MyMinecraftServer",  // Nombre del servidor
   "paper",              // Core (tipo de servidor)
   "1.21",             // Versión del core
-  "-Xms1G -Xmx2G",      // Parámetros de inicio
-  getJavaInfoByVersion(getLocalJavaVersions()[0]).absoluteUnpackPath,  // Ruta de ejecución de Java
+  "-Xms2G -Xmx4G",      // Parámetros de inicio
+  getJavaInfoByVersion(getLocalJavaVersions()[1]).javaBinPath,  // Ruta de ejecución de Java
   25565,                // Puerto del servidor
   (result) => {         // Callback de finalización
     if (result) {
@@ -275,4 +277,4 @@ console.log(getJavaInfoByVersion(getLocalJavaVersions()[0]));
       console.log("❌ Error al crear el servidor.");
     }
   }
-); */
+);

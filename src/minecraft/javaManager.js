@@ -169,6 +169,18 @@ const getJavaInfoByVersion = (javaVersion) => {
     const absoluteDownloadPath = path.resolve(relativeDownloadPath);
     const absoluteUnpackPath = path.resolve(relativeUnpackPath);
 
+    // Verificar la estructura de carpetas después de la descompresión
+    let javaBinPath = path.join(absoluteUnpackPath, 'bin');
+    if (!fs.existsSync(javaBinPath)) {
+        // Buscar la primera carpeta que comience con 'jdk-'
+        const files = fs.readdirSync(absoluteUnpackPath);
+        const jdkFolder = files.find(file => file.startsWith('jdk-'));
+        if (jdkFolder) {
+            javaBinPath = path.join(absoluteUnpackPath, jdkFolder, 'bin');
+        }
+        console.log("javaBinPath",javaBinPath);
+    }
+
     return {
         url: resultURL,
         filename,
@@ -178,7 +190,8 @@ const getJavaInfoByVersion = (javaVersion) => {
         downloadPath: relativeDownloadPath,
         unpackPath: relativeUnpackPath,
         absoluteDownloadPath,
-        absoluteUnpackPath
+        absoluteUnpackPath,
+        javaBinPath: javaBinPath // Ruta al directorio bin
     };
 };
 
