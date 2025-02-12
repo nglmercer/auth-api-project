@@ -82,7 +82,7 @@ export class ServerManager {
   }
 
   generateStartScript(platformInfo, javaPath, coreFileName, parameters) {
-    const fullJavaPath = (platform) => platform.isWindows ? `"${javaPath}\\java.exe"` : `"${javaPath}"`;
+    const fullJavaPath = (platform) => platform.isWindows ? `"${javaPath}\\java.exe"` : `"${javaPath}/java"`;
     const fullParams = `${parameters} -jar "${coreFileName}" nogui`;
     if (platformInfo.isWindows) {
       return `@echo off\n${fullJavaPath(platformInfo)} ${fullParams}`;
