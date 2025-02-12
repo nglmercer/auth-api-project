@@ -1,14 +1,17 @@
-import {
-    gameVersionToJava,
-    isTermux,
-    getArchitecture,
-    installJavaTermux,
-    checkJavaVersionTermux,
-    getDownloadableJavaVersions,
-    getLocalJavaVersions,
-    getJavaInfoByVersion,
-    getJavaPath,
-    verifyJavaInstallation
+import  {
+  gameVersionToJava,
+  isTermux,
+  getArchitecture,
+  installJavaTermux,
+  checkJavaVersionTermux,
+  getDownloadableJavaVersions,
+  getLocalJavaVersions,
+  getJavaInfoByVersion,
+  getJavaPath,
+  verifyJavaInstallation,
+  prepareJavaForServer,
+  isJavaVersionCompatible,
+  generateserverrequirements
 } from "./javaManager.js";
 import {
     getSpigotVersions,
@@ -53,47 +56,6 @@ const PREDEFINED = {
       FAILED: "failed"
     }
   };
-import { logger } from "../utils/utils.js";
-export async function prepareJavaForServer(javaVersion) {
-    if (typeof javaVersion !== 'string') javaVersion = String(javaVersion ?? '');
-    try {
-        let javaExecutablePath = "";
-        let javaDownloadURL = "";
-        let isJavaNaN = isNaN(parseInt(javaVersion));
-
-        if (isJavaNaN && fs.existsSync(javaVersion)) {
-            return javaVersion;
-        }
-
-        if (!isJavaNaN) {
-            javaExecutablePath = getJavaPath(javaVersion);
-            if (!javaExecutablePath) {
-                let javaVerInfo = getJavaInfoByVersion(javaVersion);
-                javaDownloadURL = javaVerInfo.url;
-                console.log(javaDownloadURL, javaVerInfo);
-
-                const javaDlResult = await addDownloadTask(javaDownloadURL, javaVerInfo.downloadPath);
-                if (!javaDlResult) {
-                    logger.warning( "{{console.javaDownloadFailed}");
-                    return false;
-                }
-
-                const javaUnpackResult = await unpackArchive(javaVerInfo.downloadPath, javaVerInfo.unpackPath, true);
-                if (!javaUnpackResult) {
-                    logger.warning( "{{console.javaUnpackFailed}}");
-                    return false;
-                }
-
-                javaExecutablePath = getJavaPath(javaVersion);
-            }
-            return javaExecutablePath;
-        }
-        return javaExecutablePath;
-    } catch (error) {
-        console.error("Error in prepareJavaForServer:", error);
-        return false;
-    }
-}
 export const getPlatformInfo = () => {
     const isTermux = process.platform === "android" || fs.existsSync("/data/data/com.termux");
     const isWindows = process.platform === "win32";
@@ -175,53 +137,50 @@ motd=\u00A7f${serverName}`
     }
 }
   const newServerManager = new ServerManager();
-  export async function startJavaServerGeneration(params,cb) {
-    let {serverName,core,coreVersion,startParameters,javaExecutablePath,serverPort } = params;
-    console.log("[DEBUG] Starting server generation with params:", {
-      serverName,
-      core,
-      coreVersion,
-      startParameters,
-      javaExecutablePath,
-      serverPort,
-    });
-  
-    if (!javaExecutablePath) {
-      console.error("[ERROR] Invalid Java executable path");
+export async function startJavaServerGeneration(params,cb) {
+  let {serverName,core,coreVersion,startParameters,javaExecutablePath,serverPort } = params;
+  const javaRequirements = await generateserverrequirements(params);
+  if (!javaRequirements || !javaRequirements.installed) {
+    console.log("No se encontraron versiones de Java compatibles en este sistema. instalando java", javaRequirements.javaVersionRequired);
+    await prepareJavaForServer(javaRequirements.javaVersionRequired);
+  }
+  console.log("[DEBUG] Starting server generation with params:", params);
+
+  if (!javaExecutablePath) {
+    console.error("[ERROR] Invalid Java executable path");
+    javaExecutablePath = getJavaInfoByVersion(javaRequirements.javaVersionRequired).javaBinPath;
+  }
+
+  const coreFileName = `${core}-${coreVersion}.jar`;
+  console.log("[DEBUG] Core filename:", coreFileName);
+
+  const serverDirectoryPath = `./servers/${serverName}`;
+  console.log("[DEBUG] Server directory path:", serverDirectoryPath);
+  fs.mkdirSync(serverDirectoryPath, { recursive: true });
+
+  console.log("[DEBUG] Attempting to download core...");
+
+  try {
+    const coreDownloadURL = await getCoreVersionURL(core, coreVersion);
+    if (!coreDownloadURL) {
+      console.error("[ERROR] Failed to retrieve download URL");
       cb(false);
       return;
     }
-  
-    const coreFileName = `${core}-${coreVersion}.jar`;
-    console.log("[DEBUG] Core filename:", coreFileName);
-  
-    const serverDirectoryPath = `./servers/${serverName}`;
-    console.log("[DEBUG] Server directory path:", serverDirectoryPath);
-    fs.mkdirSync(serverDirectoryPath, { recursive: true });
-  
-    console.log("[DEBUG] Attempting to download core...");
-  
-    try {
-      const coreDownloadURL = await getCoreVersionURL(core, coreVersion);
-      if (!coreDownloadURL) {
-        console.error("[ERROR] Failed to retrieve download URL");
-        cb(false);
-        return;
-      }
-  
-      console.log("[DEBUG] Core download URL:", coreDownloadURL);
-  
-      const coreFilePath = path.join(serverDirectoryPath, coreFileName);
-      await downloadFile(coreDownloadURL, coreFilePath);
-      newServerManager.writeStartFiles({serverName, coreFileName, startParameters, javaExecutablePath, serverPort});
-  
-      console.log(`✅ Core downloaded successfully: ${coreFilePath}`);
-      cb(true);
-    } catch (error) {
-      console.error("[ERROR] Failed to download core:", error);
-      cb(false);
-    }
+
+    console.log("[DEBUG] Core download URL:", coreDownloadURL);
+
+    const coreFilePath = path.join(serverDirectoryPath, coreFileName);
+    await addDownloadTask(coreDownloadURL, coreFilePath);
+    newServerManager.writeStartFiles({serverName, coreFileName, startParameters, javaExecutablePath, serverPort});
+
+    console.log(`✅ Core downloaded successfully: ${coreFilePath}`);
+    cb(true);
+  } catch (error) {
+    console.error("[ERROR] Failed to download core:", error);
+    cb(false);
   }
+}
 
 
 
@@ -249,7 +208,7 @@ async function downloadFile(url, outputPath) {
 }
 
 const configserver = {
-  serverName: "MyMinecraftServer",  // Nombre del servidor
+  serverName: "servers",  // Nombre del servidor
   core: "paper",              // Core (tipo de servidor)
   coreVersion: "1.21",             // Versión del core
   startParameters: "-Xms2G -Xmx4G",      // Parámetros de inicio

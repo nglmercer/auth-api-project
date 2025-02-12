@@ -253,7 +253,7 @@ const verifyJavaInstallation = async (version) => {
         return false;
     }
 };
-export async function prepareJavaForServer(javaVersion) {
+async function prepareJavaForServer(javaVersion) {
     if (typeof javaVersion !== 'string') javaVersion = String(javaVersion ?? '');
     try {
         let javaExecutablePath = "";
@@ -293,6 +293,42 @@ export async function prepareJavaForServer(javaVersion) {
         return false;
     }
 }
+const isJavaVersionCompatible = (requiredVersion, installedVersions) => {
+    return installedVersions
+        .map(Number)  // Convertimos a número
+        .filter(v => !isNaN(v))  // Filtramos valores no numéricos
+        .some(v => v >= requiredVersion);
+    };
+const getClosestJavaVersion = (requiredVersion, installedVersions) => {
+    const validVersions = installedVersions
+        .map(Number)  // Convertimos a número
+        .filter(v => !isNaN(v) && v >= requiredVersion);  // Filtramos no numéricos y menores a requiredVersion
+
+    if (validVersions.length === 0) return null;  // Si no hay versiones válidas, retornamos null
+
+    return Math.min(...validVersions);  // Retornamos la versión más cercana (mínima entre las mayores)
+};
+async function generateserverrequirements(params){
+    let {serverName,core,coreVersion,startParameters,javaExecutablePath,serverPort } = params;
+    if (!getLocalJavaVersions()) {
+        console.log("No se encontraron versiones de Java en este sistema.");
+        //manejar instalacion de java
+        return;
+    }
+
+    const javaVersionRequired = gameVersionToJava(coreVersion);
+    const localJavaVersions = getLocalJavaVersions();
+    const closestVersion = getClosestJavaVersion(javaVersionRequired, localJavaVersions);
+
+    console.log(`Versión de Java compatible encontrada:`, closestVersion);
+    return {
+        java: getJavaInfoByVersion(closestVersion),
+        version: closestVersion,
+        installed: closestVersion ? true : false,
+        localJavaVersions,
+        javaVersionRequired
+    }
+}   
 export {
     gameVersionToJava,
     isTermux,
@@ -303,7 +339,10 @@ export {
     getLocalJavaVersions,
     getJavaInfoByVersion,
     getJavaPath,
-    verifyJavaInstallation
+    verifyJavaInstallation,
+    prepareJavaForServer,
+    isJavaVersionCompatible,
+    generateserverrequirements
 }
 const configserver = {
     serverName: "MyMinecraftServer",  // Nombre del servidor
@@ -313,25 +352,11 @@ const configserver = {
     javaExecutablePath: getJavaInfoByVersion(getLocalJavaVersions()[1]).javaBinPath,  // Ruta de ejecución de Java
     serverPort: 25565,                // Puerto del servidor
   };
-const isJavaVersionCompatible = (requiredVersion, installedVersions) => {
-return installedVersions
-    .map(Number)  // Convertimos a número
-    .filter(v => !isNaN(v))  // Filtramos valores no numéricos
-    .some(v => v >= requiredVersion);
-};
-const getClosestJavaVersion = (requiredVersion, installedVersions) => {
-    const validVersions = installedVersions
-        .map(Number)  // Convertimos a número
-        .filter(v => !isNaN(v) && v >= requiredVersion);  // Filtramos no numéricos y menores a requiredVersion
-
-    if (validVersions.length === 0) return null;  // Si no hay versiones válidas, retornamos null
-
-    return Math.min(...validVersions);  // Retornamos la versión más cercana (mínima entre las mayores)
-};
 
 
 
-function generateserverrequirements(params){
+
+/* async function generateserverrequirements(params, Callback){
     let {serverName,core,coreVersion,startParameters,javaExecutablePath,serverPort } = params;
     if (!getLocalJavaVersions()) {
         console.log("No se encontraron versiones de Java en este sistema.");
@@ -345,17 +370,24 @@ function generateserverrequirements(params){
 
     if (!closestVersion) {
         console.log("No hay ninguna versión de Java compatible instalada.", javaVersionRequired, localJavaVersions);
-        prepareJavaForServer(javaVersionRequired);
+        await    prepareJavaForServer(javaVersionRequired);
         return;
     }
 
     console.log(`Versión de Java compatible encontrada:`, closestVersion);
+    if (Callback){
+        Callback({
+            java: getJavaInfoByVersion(closestVersion),
+            version: closestVersion
+        })
+    }
     return {
         java: getJavaInfoByVersion(closestVersion),
         version: closestVersion
     }
-}
-console.log(generateserverrequirements(configserver))
+} */
+
+console.log("generateserverrequirements",generateserverrequirements(configserver,(data)=>{console.log("Callback executed", data)}));
 /* const assert = require('assert');
 
 // Pruebas para la función gameVersionToJava
