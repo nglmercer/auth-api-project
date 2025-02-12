@@ -54,12 +54,12 @@ export class ServerManager {
   }
 
   writeStartFiles(config) {
-    let { serverName, coreFileName, startParameters = "-Xms1G -Xmx2G", javaExecutablePath, serverPort } = config;
+    let { serverName, coreFileName, startParameters = "-Xms1G -Xmx2G", serverPort,coreVersion } = config;
       try {
-          if (!serverName || !coreFileName || !javaExecutablePath || !serverPort) {
+          if (!serverName || !coreFileName || !serverPort) {
               throw new Error("Parámetros inválidos.");
           }
-
+          const javaExecutablePath = getJavaInfoByVersion(gameVersionToJava(coreVersion)).javaBinPath;
           // Crear carpeta del servidor si no existe
           createserverfolder(serverName);
 
@@ -82,7 +82,7 @@ export class ServerManager {
   }
 
   generateStartScript(platformInfo, javaPath, coreFileName, parameters) {
-    const fullJavaPath = (platform) => platform.isWindows ? `"${javaPath}/java.exe"` : `"${javaPath}"`;
+    const fullJavaPath = (platform) => platform.isWindows ? `"${javaPath}\\java.exe"` : `"${javaPath}"`;
     const fullParams = `${parameters} -jar "${coreFileName}" nogui`;
 
     if (platformInfo.isTermux) {
@@ -105,7 +105,7 @@ export class ServerManager {
 const newServerManager = new ServerManager();
 
 export async function startJavaServerGeneration(params, cb) {
-  let { serverName, core, coreVersion, startParameters, javaExecutablePath, serverPort } = params;
+  let { serverName, core, coreVersion, startParameters, serverPort } = params;
   const javaRequirements = await generateserverrequirements(params);
 
   if (!javaRequirements || !javaRequirements.installed) {
@@ -126,12 +126,9 @@ export async function startJavaServerGeneration(params, cb) {
     }
 
     const coreFilePath = path.join(serverDirectoryPath, coreFileName);
-    //await addDownloadTask(coreDownloadURL, coreFilePath);
+    await addDownloadTask(coreDownloadURL, coreFilePath);
 
-    // Escribimos los archivos de inicio y actualizamos el registro de la carpeta
-    javaExecutablePath = javaRequirements.java?.javaBinPath || javaExecutablePath;
-    console.log("javaExecutablePath writeStartFiles param",javaExecutablePath, javaRequirements);
-    newServerManager.writeStartFiles({ serverName, coreFileName, startParameters, javaExecutablePath, serverPort });
+    newServerManager.writeStartFiles({ serverName, coreFileName, startParameters, serverPort,coreVersion });
 
     console.log(`✅ Core descargado exitosamente: ${coreFilePath}`);
     cb(true);
@@ -147,7 +144,6 @@ const configserver = {
   core: "paper",          // Tipo de core
   coreVersion: "1.21",    // Versión del core
   startParameters: "-Xms2G -Xmx4G",
-  javaExecutablePath: getJavaInfoByVersion(getLocalJavaVersions()[1]).javaBinPath,
   serverPort: 25565,
 };
 
