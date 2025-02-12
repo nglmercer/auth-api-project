@@ -5,7 +5,7 @@ import { pipeline } from "stream/promises";
 import decompress from "decompress";
 import colors from "colors";
 import { v4 as uuidv4 } from 'uuid';
-import { Logger, StorageManager } from "../utils/utils.js";
+import { logger, Logger, StorageManager } from "../utils/utils.js";
 const tasklogger = new Logger();
 const taskStorage = new StorageManager('tasks.json', './data');
 const PREDEFINED = {
@@ -130,6 +130,7 @@ function updateDownloadProgress(taskID, chunkLength) {
 }
 
 async function addDownloadTask(downloadURL, filePath) {
+    logger.log(`Descargando archivo desde ${downloadURL} a ${filePath}`);
     try {
         // Extraer la carpeta destino
         const directoryPath = path.dirname(filePath);

@@ -2,6 +2,9 @@ import path from "path";
 import fs from "fs";
 import { execSync } from 'child_process';
 import axios from "axios";
+import { TASK_MANAGER, addDownloadTask, unpackArchive } from "../modules/taskmanager.js";
+import { logger } from "../utils/utils.js";
+
 //import { createRequire } from 'module';
 //const require = createRequire(import.meta.url);
 // Helper function to fetch data from a URL using axios
@@ -23,7 +26,7 @@ const isTermux = () => {
 // Convertir versión del juego a versión Java requerida
 const gameVersionToJava = (version) => {
     const [, sec, ter] = version.split(".").map(Number);
-
+    if (!version) return 18;
     if (sec <= 8) return 8;
     if (sec <= 11) return 11;
     if (sec <= 15) return 11;
@@ -139,7 +142,7 @@ const getJavaInfoByVersion = (javaVersion) => {
             installCmd: `pkg install openjdk-${javaVersion}`,
             javaPath: '/data/data/com.termux/files/usr/bin/java',
             installed: checkJavaVersionTermux(javaVersion),
-            absoluteJavaPath: '/data/data/com.termux/files/usr/bin/java' // Ya es absoluto
+            absoluteJavaPath: '/data/data/com.termux/files/usr/bin/java'
         };
     }
 
@@ -169,16 +172,21 @@ const getJavaInfoByVersion = (javaVersion) => {
     const absoluteDownloadPath = path.resolve(relativeDownloadPath);
     const absoluteUnpackPath = path.resolve(relativeUnpackPath);
 
+    // Asegurar que los directorios existan antes de leerlos
+    const javaDir = path.resolve('./binaries/java');
+    if (!fs.existsSync(javaDir)) {
+        fs.mkdirSync(javaDir, { recursive: true });
+    }
+
     // Verificar la estructura de carpetas después de la descompresión
     let javaBinPath = path.join(absoluteUnpackPath, 'bin');
-    if (!fs.existsSync(javaBinPath)) {
-        // Buscar la primera carpeta que comience con 'jdk-'
+    if (!fs.existsSync(javaBinPath) && fs.existsSync(absoluteUnpackPath)) {
         const files = fs.readdirSync(absoluteUnpackPath);
         const jdkFolder = files.find(file => file.startsWith('jdk-'));
         if (jdkFolder) {
             javaBinPath = path.join(absoluteUnpackPath, jdkFolder, 'bin');
         }
-        console.log("javaBinPath",javaBinPath);
+        console.log("javaBinPath", javaBinPath);
     }
 
     return {
@@ -191,7 +199,7 @@ const getJavaInfoByVersion = (javaVersion) => {
         unpackPath: relativeUnpackPath,
         absoluteDownloadPath,
         absoluteUnpackPath,
-        javaBinPath: javaBinPath // Ruta al directorio bin
+        javaBinPath
     };
 };
 
@@ -245,6 +253,46 @@ const verifyJavaInstallation = async (version) => {
         return false;
     }
 };
+export async function prepareJavaForServer(javaVersion) {
+    if (typeof javaVersion !== 'string') javaVersion = String(javaVersion ?? '');
+    try {
+        let javaExecutablePath = "";
+        let javaDownloadURL = "";
+        let isJavaNaN = isNaN(parseInt(javaVersion));
+
+        if (isJavaNaN && fs.existsSync(javaVersion)) {
+            return javaVersion;
+        }
+
+        if (!isJavaNaN) {
+            javaExecutablePath = getJavaPath(javaVersion);
+            if (!javaExecutablePath) {
+                let javaVerInfo = getJavaInfoByVersion(javaVersion);
+                javaDownloadURL = javaVerInfo.url;
+                console.log(javaDownloadURL, javaVerInfo);
+
+                const javaDlResult = await addDownloadTask(javaDownloadURL, javaVerInfo.downloadPath);
+                if (!javaDlResult) {
+                    logger.warning( "{{console.javaDownloadFailed}");
+                    return false;
+                }
+
+                const javaUnpackResult = await unpackArchive(javaVerInfo.downloadPath, javaVerInfo.unpackPath, true);
+                if (!javaUnpackResult) {
+                    logger.warning( "{{console.javaUnpackFailed}}");
+                    return false;
+                }
+
+                javaExecutablePath = getJavaPath(javaVersion);
+            }
+            return javaExecutablePath;
+        }
+        return javaExecutablePath;
+    } catch (error) {
+        console.error("Error in prepareJavaForServer:", error);
+        return false;
+    }
+}
 export {
     gameVersionToJava,
     isTermux,
@@ -257,10 +305,57 @@ export {
     getJavaPath,
     verifyJavaInstallation
 }
-gameVersionToJava('1.8.0');
-console.log(getJavaInfoByVersion());
-console.log(gameVersionToJava('1.8.0'));
-console.log(getLocalJavaVersions());
+const configserver = {
+    serverName: "MyMinecraftServer",  // Nombre del servidor
+    core: "paper",              // Core (tipo de servidor)
+    coreVersion: "1.5",             // Versión del core
+    startParameters: "-Xms2G -Xmx4G",      // Parámetros de inicio
+    javaExecutablePath: getJavaInfoByVersion(getLocalJavaVersions()[1]).javaBinPath,  // Ruta de ejecución de Java
+    serverPort: 25565,                // Puerto del servidor
+  };
+const isJavaVersionCompatible = (requiredVersion, installedVersions) => {
+return installedVersions
+    .map(Number)  // Convertimos a número
+    .filter(v => !isNaN(v))  // Filtramos valores no numéricos
+    .some(v => v >= requiredVersion);
+};
+const getClosestJavaVersion = (requiredVersion, installedVersions) => {
+    const validVersions = installedVersions
+        .map(Number)  // Convertimos a número
+        .filter(v => !isNaN(v) && v >= requiredVersion);  // Filtramos no numéricos y menores a requiredVersion
+
+    if (validVersions.length === 0) return null;  // Si no hay versiones válidas, retornamos null
+
+    return Math.min(...validVersions);  // Retornamos la versión más cercana (mínima entre las mayores)
+};
+
+
+
+function generateserverrequirements(params){
+    let {serverName,core,coreVersion,startParameters,javaExecutablePath,serverPort } = params;
+    if (!getLocalJavaVersions()) {
+        console.log("No se encontraron versiones de Java en este sistema.");
+        //manejar instalacion de java
+        return;
+    }
+
+    const javaVersionRequired = gameVersionToJava(coreVersion);
+    const localJavaVersions = getLocalJavaVersions();
+    const closestVersion = getClosestJavaVersion(javaVersionRequired, localJavaVersions);
+
+    if (!closestVersion) {
+        console.log("No hay ninguna versión de Java compatible instalada.", javaVersionRequired, localJavaVersions);
+        prepareJavaForServer(javaVersionRequired);
+        return;
+    }
+
+    console.log(`Versión de Java compatible encontrada:`, closestVersion);
+    return {
+        java: getJavaInfoByVersion(closestVersion),
+        version: closestVersion
+    }
+}
+console.log(generateserverrequirements(configserver))
 /* const assert = require('assert');
 
 // Pruebas para la función gameVersionToJava
@@ -287,4 +382,4 @@ const arch = getArchitecture();
 assert.ok(['arm', 'aarch64', 'x86_64'].includes(arch) || arch === null, 'getArchitecture debería devolver una arquitectura válida o null');
 console.log('getArchitecture tests passed!');
 
-console.log('All tests passed!'); */
+*/

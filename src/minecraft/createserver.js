@@ -175,15 +175,8 @@ motd=\u00A7f${serverName}`
     }
 }
   const newServerManager = new ServerManager();
-  export async function startJavaServerGeneration(
-    serverName,
-    core,
-    coreVersion,
-    startParameters,
-    javaExecutablePath,
-    serverPort,
-    cb
-  ) {
+  export async function startJavaServerGeneration(params,cb) {
+    let {serverName,core,coreVersion,startParameters,javaExecutablePath,serverPort } = params;
     console.log("[DEBUG] Starting server generation with params:", {
       serverName,
       core,
@@ -219,9 +212,8 @@ motd=\u00A7f${serverName}`
       console.log("[DEBUG] Core download URL:", coreDownloadURL);
   
       const coreFilePath = path.join(serverDirectoryPath, coreFileName);
-      //writeStartFiles(serverName, coreFileName, startParameters, javaExecutablePath, serverPort) 
+      await downloadFile(coreDownloadURL, coreFilePath);
       newServerManager.writeStartFiles({serverName, coreFileName, startParameters, javaExecutablePath, serverPort});
-      //await downloadFile(coreDownloadURL, coreFilePath);
   
       console.log(`✅ Core downloaded successfully: ${coreFilePath}`);
       cb(true);
@@ -256,20 +248,17 @@ async function downloadFile(url, outputPath) {
     }
 }
 
-
-// install java prepareJavaForServer(17)
-//prepareJavaForServer(21)
-// get local java versions getLocalJavaVersions()
-// get java info { }
-console.log(getLocalJavaVersions());
-console.log(getJavaInfoByVersion(getLocalJavaVersions()[0]));
+const configserver = {
+  serverName: "MyMinecraftServer",  // Nombre del servidor
+  core: "paper",              // Core (tipo de servidor)
+  coreVersion: "1.21",             // Versión del core
+  startParameters: "-Xms2G -Xmx4G",      // Parámetros de inicio
+  javaExecutablePath: getJavaInfoByVersion(getLocalJavaVersions()[1]).javaBinPath,  // Ruta de ejecución de Java
+  serverPort: 25565,                // Puerto del servidor
+};
 startJavaServerGeneration(
-  "MyMinecraftServer",  // Nombre del servidor
-  "paper",              // Core (tipo de servidor)
-  "1.21",             // Versión del core
-  "-Xms2G -Xmx4G",      // Parámetros de inicio
-  getJavaInfoByVersion(getLocalJavaVersions()[1]).javaBinPath,  // Ruta de ejecución de Java
-  25565,                // Puerto del servidor
+
+  configserver,
   (result) => {         // Callback de finalización
     if (result) {
       console.log("✅ Servidor creado exitosamente.");
@@ -278,3 +267,12 @@ startJavaServerGeneration(
     }
   }
 );
+
+
+// install java prepareJavaForServer(17)
+//prepareJavaForServer(21)
+// get local java versions getLocalJavaVersions()
+// get java info { }
+
+// console.log(getLocalJavaVersions());
+// console.log(getJavaInfoByVersion(getLocalJavaVersions()[0]));
