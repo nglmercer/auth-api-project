@@ -21,21 +21,22 @@ class FileManager {
 
   createFile(folderName, fileName, content = '') {
     const folderPath = path.join(this.basePath, folderName);
-
+  
     if (!fs.existsSync(folderPath)) {
       fs.mkdirSync(folderPath, { recursive: true });
     }
-
+  
     const ext = path.extname(fileName).slice(1);
     if (!this._isValidExtension(ext)) {
       throw new Error(`Extensión no permitida. Extensiones válidas: ${ALLOWED_EXTENSIONS.join(', ')}`);
     }
-
+  
     const filePath = path.join(folderPath, fileName);
     fs.writeFileSync(filePath, content, { encoding: 'utf8' });
+    fs.chmodSync(filePath, 0o755); // Asigna permisos después de crear el archivo.
     return filePath;
   }
-
+  
   readFile(folderName, fileName) {
     const folderPath = path.join(this.basePath, folderName);
     const filePath = path.join(folderPath, fileName);
