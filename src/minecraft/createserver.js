@@ -84,15 +84,15 @@ export class ServerManager {
   generateStartScript(platformInfo, javaPath, coreFileName, parameters) {
     const fullJavaPath = (platform) => platform.isWindows ? `"${javaPath}\\java.exe"` : `"${javaPath}"`;
     const fullParams = `${parameters} -jar "${coreFileName}" nogui`;
-
-    if (platformInfo.isTermux) {
-        return `#!/bin/bash\ncd "$(dirname "$0")"\n${fullJavaPath(platformInfo)} ${fullParams}`;
-    } else if (platformInfo.isWindows) {
-        return `@echo off\n${fullJavaPath(platformInfo)} ${fullParams}`;
-    } else {
-        return `#!/bin/bash\n${fullJavaPath(platformInfo)} ${fullParams}`;
-    }
+    if (platformInfo.isWindows) {
+      return `@echo off\n${fullJavaPath(platformInfo)} ${fullParams}`;
+    } else 
+    if (platformInfo.isTermux || platformInfo.isLinux) {
+        // Agrega el export del PATH; en este ejemplo, se asume que javaPath es el directorio del ejecutable.
+        return `#!/bin/bash\nexport PATH=$PATH:${javaPath}\ncd "$(dirname "$0")"\n${fullJavaPath(platformInfo)} ${fullParams}`;
+    } 
   }
+
   getChangeDirectoryCommand(serverName) {
     const serverPath = path.join("servers", serverName);
     return `if not exist "${serverPath}" mkdir "${serverPath}"\ncd "${serverPath}"`;
