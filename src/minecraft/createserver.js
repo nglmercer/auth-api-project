@@ -139,7 +139,7 @@ export async function startJavaServerGeneration(params, cb) {
 }
 
 // Ejemplo de uso:
-const configserver = {
+/* const configserver = {
   serverName: "melserver",  // Nombre del servidor
   core: "paper",          // Tipo de core
   coreVersion: "1.21",    // Versión del core
@@ -154,3 +154,4 @@ startJavaServerGeneration(configserver, (result) => {
     console.log("❌ Error al crear el servidor.");
   }
 });
+ */

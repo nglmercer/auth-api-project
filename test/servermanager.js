@@ -215,6 +215,6 @@ manager.addServer("melserver", "./servers/melserver", { stopCommand: "stop" });
 
 // Inicia el servidor
 manager.startServer("melserver");
-setTimeout(() => {
+setInterval(() => {
     manager.sendCommand("melserver", "say Hola mundo!");
   }, 10000);
