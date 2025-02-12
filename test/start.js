@@ -1,9 +1,7 @@
-import { createRequire } from 'module';
 import { exec } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 
-const require = createRequire(import.meta.url);
 
 /**
  * Ejecuta el script start.bat o start.sh en la carpeta especificada.

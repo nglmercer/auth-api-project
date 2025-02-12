@@ -16,7 +16,10 @@
     "decompress": "^4.2.1",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
+    "minecraft-server-properties": "^1.0.0",
+    "node-mcstatus": "^1.2.1",
     "strip-ansi": "^7.1.0",
+    "tree-kill": "^1.2.2",
     "uuid": "^11.0.5"
   },
   "devDependencies": {
