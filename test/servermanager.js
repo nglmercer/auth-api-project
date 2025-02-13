@@ -211,7 +211,7 @@ export class ServerManager {
 const manager = new ServerManager();
 
 // Agrega un servidor llamado "melserver" cuya carpeta se encuentra en "./servers/melserver"
-manager.addServer("melserver", "./servers/melserver", { stopCommand: "stop" });
+manager.addServer("melserver", "./servers/serverone", { stopCommand: "stop" });
 
 // Inicia el servidor
 manager.startServer("melserver");
