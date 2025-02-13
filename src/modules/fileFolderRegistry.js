@@ -112,7 +112,8 @@ class FolderManager {
   getFolderDetails(folderName) {
     const folderPath = path.join(this.basePath, folderName);
     if (!fs.existsSync(folderPath)) {
-      throw new Error(`La carpeta '${folderName}' no existe.`);
+      console.log(`La carpeta '${folderName}' no existe.`);
+      return false;
     }
     const stats = fs.statSync(folderPath);
     return {
@@ -213,11 +214,30 @@ function getfolderinfo(folderName) {
     console.error(error.message);
   }
 }
-
+function getallfolderinfo() {
+  try {
+    const files = folderManager.getFolderDetails(".");
+    console.log(`Archivos en la carpeta:`, files);
+    return files;
+  } catch (error) {
+    console.error(error.message);
+  }
+}
+function existsfolder(folderName) {
+  try {
+    const files = folderManager.getFolderDetails(folderName);
+    console.log(`Existe la carpeta '${folderName}':`, files);
+    return files;
+  } catch (error) {
+    console.error(error.message);
+  }
+}
 export {
   createserverfolder,
   createserverfile,
   createsubfolder,
   getfolderinfo,
-  updatefolderinfo
+  updatefolderinfo,
+  getallfolderinfo,
+  existsfolder
 };
