@@ -3,7 +3,7 @@ import authRouter from './authRouter.js';
 import filesRouter from './routers/filemanager.js';
 import path from 'path'; // Importa el módulo path para manejar rutas de archivos
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // Middleware para parsear JSON
 app.use(express.json());
