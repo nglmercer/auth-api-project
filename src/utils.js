@@ -81,3 +81,6 @@ export default class StorageManager {
     this._saveStore();
   }
 }
+export {
+  StorageManager
+}
