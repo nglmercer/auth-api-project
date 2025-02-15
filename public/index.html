@@ -154,7 +154,7 @@ function fetch_post(url, data) {
   });
 }
     setTimeout( async () => {
-      fetch_get('http://localhost:3000/auth/system/accessInfo').then(data => console.log(data));
+      fetch_get('/auth/system/accessInfo').then(data => console.log(data));
     }, 2000);
   </script>
 </body>

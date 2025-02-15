@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import {
   hashPassword,
   comparePassword
-} from ',./controllers/authverify.js';
+} from './controllers/authverify.js';
 import {UserManager, accessControl} from './UserManager.js'; // Importa la clase UserManager
 
 const router = express.Router();
@@ -62,6 +62,7 @@ router.post('/login', async (req, res) => {
     if (!user) {
       return res.status(400).json({ error: 'El usuario no existe' });
     }
+    console.log(password, user.password);
     const passwordMatch = await comparePassword(password, user.password);
     if (!passwordMatch) {
       return res.status(401).json({ error: 'Contraseña incorrecta' });
@@ -69,6 +70,7 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign({ username: user.username, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
     return res.json({ message: 'Login exitoso', token });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ error: 'Error durante el proceso de autenticación' });
   }
 });

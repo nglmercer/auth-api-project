@@ -3,7 +3,7 @@ import StorageManager from './utils.js';
 import {
   hashPassword,
   comparePassword
-} from ',./controllers/authverify.js';
+} from './controllers/authverify.js';
 const configStorage = new StorageManager('access-config.json', './data');
 const saveAccessControl = configStorage.JSONget('accessControl');
 let accessControl = isEmptyObject(saveAccessControl) 

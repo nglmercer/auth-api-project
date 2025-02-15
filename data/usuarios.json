@@ -1,23 +1,11 @@
 {
-    "users": {
-      "123@gmail.com": {
-        "username": "123@gmail.com",
-        "email": "123@gmail.com",
-        "password": "$2b$10$HLKAjEmOtr6FszTh8r4hoOmPZnweKBhWc19.0SgHQrRskO2P7aqpa"
-      },
-      "testuser": {
-        "username": "testuser",
-        "email": "test@example.com",
-        "password": "$2b$10$6cvSd3v69tui/pQbivRryud9uXufXtomzdlUDB/tXLi5TQ4pLJUF6",
-        "permissions": [],
-        "roles": []
-      },
-      "elpepe": {
-        "username": "elpepe",
-        "email": "2@gmail.com",
-        "password": "$2b$10$/9r/vrgPcnJoSawEO.CXfepGsx0sj8R8nkLWwXkpr.pMA1X4Lb96q",
-        "permissions": [],
-        "roles": []
-      }
+  "users": {
+    "e": {
+      "username": "e",
+      "email": "e@e.com",
+      "password": "c9728279dbe4be8ad76bec43169b857d:c34bca688ae0df9bf08bb83137fcbdb3f537d6b886f76fc6f8be91826bc47cdcae3cf70a234bc7b32a7fec1449288abd4dded129ba2abc7a0c26744f439f02fe",
+      "permissions": [],
+      "roles": []
     }
   }
+}
